@@ -12,11 +12,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Map App',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        fontFamily: 'Roboto',
-      ),
-      home: MainPage()
+      theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Roboto'),
+      home: MainPage(),
     );
   }
 }
@@ -31,18 +28,25 @@ class MainPage extends StatelessWidget {
         children: [
           Flexible(
             child: Container(
-              width: double.infinity, height: double.infinity,
-              child: Text("MapWidget"),
-
+              width: double.infinity,
+              height: double.infinity,
+              color: Colors.blue,
+              child: Center(child: Text("MapWidget")),
             ),
             flex: 5,
           ),
           Flexible(
-              child: Column(
-                children: [
-
-                ],
-              )
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  color: Colors.deepPurpleAccent,
+                  child: Column(children: []),
+                ),
+              ],
+            ),
+            flex: 5,
           ),
         ],
       ),
