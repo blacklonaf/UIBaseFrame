@@ -42,7 +42,9 @@ class MainPage extends StatelessWidget {
                   width: double.infinity,
                   height: double.infinity,
                   color: Colors.deepPurpleAccent,
-                  child: Column(children: []),
+                  child: Column(children: [
+
+                  ]),
                 ),
               ],
             ),
