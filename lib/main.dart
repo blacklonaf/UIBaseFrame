@@ -46,8 +46,6 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    // 생략된 내용은 그대로 두고 build() 안의 Stack 위젯 부분부터만 변경합니다:
-
     return Scaffold(
       body: Stack(
         children: [
@@ -65,107 +63,60 @@ class _MainPageState extends State<MainPage> {
                     BoxShadow(color: Colors.black26, blurRadius: 10),
                   ],
                 ),
-                child: ListView(
+                child: CustomScrollView(
                   controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(12, 16, 12, 0),
-                  children: [
-                    // 상단 카테고리
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: topCategories.map((category) {
-                          final isSelected = selectedTopCategories.contains(category);
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
-                            child: ChoiceChip(
-                              label: Text(category),
-                              labelStyle: TextStyle(
-                                color: isSelected ? Colors.white : Colors.black,
-                              ),
-                              selectedColor: Colors.black,
-                              backgroundColor: Colors.grey.shade200,
-                              selected: isSelected,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              onSelected: (selected) {
-                                setState(() {
-                                  if (isSelected && selectedTopCategories.length == 1) return;
-                                  isSelected
-                                      ? selectedTopCategories.remove(category)
-                                      : selectedTopCategories.add(category);
-                                });
-                              },
-                            ),
-                          );
-                        }).toList(),
+                  slivers: [
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: FilterHeaderDelegate(
+                        topCategories: topCategories,
+                        bottomFilters: bottomFilters,
+                        sortOptions: sortOptions,
+                        selectedTopCategories: selectedTopCategories,
+                        selectedBottomFilters: selectedBottomFilters,
+                        selectedSort: selectedSort,
+                        onTopCategoryTap: (category) {
+                          setState(() {
+                            if (selectedTopCategories.contains(category)) {
+                              if (selectedTopCategories.length == 1) return;
+                              selectedTopCategories.remove(category);
+                            } else {
+                              selectedTopCategories.add(category);
+                            }
+                          });
+                        },
+                        onBottomFilterTap: (filter) {
+                          setState(() {
+                            if (selectedBottomFilters.contains(filter)) {
+                              if (selectedBottomFilters.length == 1) return;
+                              selectedBottomFilters.remove(filter);
+                            } else {
+                              selectedBottomFilters.add(filter);
+                            }
+                          });
+                        },
+                        onSortChange: (value) {
+                          setState(() {
+                            selectedSort = value!;
+                          });
+                        },
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        DropdownButton<String>(
-                          value: selectedSort,
-                          onChanged: (value) {
-                            setState(() {
-                              selectedSort = value!;
-                            });
-                          },
-                          items: sortOptions.map((option) {
-                            return DropdownMenuItem<String>(
-                              value: option,
-                              child: Text(option),
-                            );
-                          }).toList(),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Row(
-                            children: bottomFilters.map((filter) {
-                              final isSelected = selectedBottomFilters.contains(filter);
-                              return Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                                  child: ChoiceChip(
-                                    label: Center(
-                                      child: Text(
-                                        filter,
-                                        style: TextStyle(
-                                          color: isSelected ? Colors.white : Colors.black,
-                                        ),
-                                      ),
-                                    ),
-                                    selectedColor: Colors.black,
-                                    backgroundColor: Colors.grey.shade200,
-                                    selected: isSelected,
-                                    padding: const EdgeInsets.symmetric(vertical: 8),
-                                    onSelected: (selected) {
-                                      setState(() {
-                                        if (isSelected &&
-                                            selectedBottomFilters.length == 1) return;
-                                        isSelected
-                                            ? selectedBottomFilters.remove(filter)
-                                            : selectedBottomFilters.add(filter);
-                                      });
-                                    },
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    ...List.generate(
-                      10,
-                          (index) => Card(
-                        margin: const EdgeInsets.symmetric(vertical: 6),
-                        child: ListTile(
-                          title: Text(
-                            '${selectedTopCategories.join(', ')} / '
-                                '${selectedBottomFilters.join(', ')} ${index + 1}번 장소',
-                          ),
-                          subtitle: Text('정렬: $selectedSort'),
-                        ),
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+                            child: ListTile(
+                              title: Text(
+                                '${selectedTopCategories.join(', ')} / '
+                                    '${selectedBottomFilters.join(', ')} ${index + 1}번 장소',
+                              ),
+                              subtitle: Text('정렬: $selectedSort'),
+                            ),
+                          );
+                        },
+                        childCount: 10,
                       ),
                     ),
                   ],
@@ -256,4 +207,115 @@ class _MapWidgetState extends State<MapWidget> {
       ],
     );
   }
+}
+
+class FilterHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final List<String> topCategories;
+  final List<String> bottomFilters;
+  final List<String> sortOptions;
+  final List<String> selectedTopCategories;
+  final List<String> selectedBottomFilters;
+  final String selectedSort;
+  final void Function(String) onTopCategoryTap;
+  final void Function(String) onBottomFilterTap;
+  final void Function(String?) onSortChange;
+
+  FilterHeaderDelegate({
+    required this.topCategories,
+    required this.bottomFilters,
+    required this.sortOptions,
+    required this.selectedTopCategories,
+    required this.selectedBottomFilters,
+    required this.selectedSort,
+    required this.onTopCategoryTap,
+    required this.onBottomFilterTap,
+    required this.onSortChange,
+  });
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: topCategories.map((category) {
+                final isSelected = selectedTopCategories.contains(category);
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: ChoiceChip(
+                    label: Text(category),
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.white : Colors.black,
+                    ),
+                    selectedColor: Colors.black,
+                    backgroundColor: Colors.grey.shade200,
+                    selected: isSelected,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    onSelected: (_) => onTopCategoryTap(category),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              DropdownButton<String>(
+                value: selectedSort,
+                onChanged: onSortChange,
+                items: sortOptions.map((option) {
+                  return DropdownMenuItem<String>(
+                    value: option,
+                    child: Text(option),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Row(
+                  children: bottomFilters.map((filter) {
+                    final isSelected = selectedBottomFilters.contains(filter);
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: ChoiceChip(
+                          label: Center(
+                            child: Text(
+                              filter,
+                              style: TextStyle(
+                                color: isSelected ? Colors.white : Colors.black,
+                              ),
+                            ),
+                          ),
+                          selectedColor: Colors.black,
+                          backgroundColor: Colors.grey.shade200,
+                          selected: isSelected,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          onSelected: (_) => onBottomFilterTap(filter),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  double get maxExtent => 130;
+
+  @override
+  double get minExtent => 130;
+
+  @override
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) => true;
 }
