@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'admin_settings_page.dart';
+import 'models/place.dart';
+import 'dummy_data.dart';
+import 'widgets/place_card.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -26,6 +31,7 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
+  final GlobalKey<_MapWidgetState> _mapKey = GlobalKey<_MapWidgetState>();
   final List<String> topCategories = [
     '총학생회',
     '경영대',
@@ -49,12 +55,16 @@ class _MainPageState extends State<MainPage> {
     return Scaffold(
       body: Stack(
         children: [
-          const MapWidget(),
+          MapWidget(key: _mapKey),
           DraggableScrollableSheet(
             initialChildSize: 0.35,
             minChildSize: 0.25,
             maxChildSize: 0.85,
             builder: (context, scrollController) {
+              final filtered = dummyPlaces.where((place) {
+                return selectedTopCategories.any((cat) => place.category.contains(cat)) &&
+                    selectedBottomFilters.any((type) => place.category.contains(type));
+              }).toList();
               return Container(
                 decoration: const BoxDecoration(
                   color: Colors.white,
@@ -105,18 +115,29 @@ class _MainPageState extends State<MainPage> {
                     SliverList(
                       delegate: SliverChildBuilderDelegate(
                             (context, index) {
-                          return Card(
-                            margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-                            child: ListTile(
-                              title: Text(
-                                '${selectedTopCategories.join(', ')} / '
-                                    '${selectedBottomFilters.join(', ')} ${index + 1}번 장소',
-                              ),
-                              subtitle: Text('정렬: $selectedSort'),
-                            ),
-                          );
-                        },
-                        childCount: 10,
+                              final place = filtered[index];
+                              return GestureDetector(
+                                onTap: () {
+                                  _mapKey.currentState?.moveCameraTo(
+                                    LatLng(place.latitude, place.longitude),
+                                  );
+                                },
+                                child: PlaceCard(
+                                  name: place.name,
+                                  category: place.category,
+                                  address: place.address,
+                                  imageUrl: place.imageUrl,
+                                  benefitTitle: place.benefitTitle,
+                                  benefitSub: place.benefitSub,
+                                  restriction: place.restriction,
+                                  restrictionSub: place.restrictionSub,
+                                  statusText: place.isOpen ? '영업 중' : '영업 종료',
+                                  statusColor: place.isOpen ? Colors.greenAccent : Colors.redAccent,
+                                  expireDate: place.expireDate,
+                                ),
+                              );
+                            },
+                        childCount: filtered.length,
                       ),
                     ),
                   ],
@@ -131,14 +152,32 @@ class _MainPageState extends State<MainPage> {
 }
 
 class MapWidget extends StatefulWidget {
-  const MapWidget({super.key});
+  const MapWidget({super.key}); // ⛔ mapKey 제거
 
   @override
   State<MapWidget> createState() => _MapWidgetState();
 }
 
+
 class _MapWidgetState extends State<MapWidget> {
   bool isPopupVisible = false;
+  late GoogleMapController mapController;
+
+  final LatLng _initialPosition = const LatLng(37.623569, 123.061899);
+
+  Set<Marker> get markers => dummyPlaces.map((place) {
+    return Marker(
+      markerId: MarkerId(place.name),
+      position: LatLng(place.latitude, place.longitude),
+      infoWindow: InfoWindow(title: place.name),
+    );
+  }).toSet();
+
+  void moveCameraTo(LatLng target) {
+    mapController.animateCamera(
+      CameraUpdate.newLatLngZoom(target, 17),
+    );
+  }
 
   void togglePopup() {
     setState(() {
@@ -160,13 +199,17 @@ class _MapWidgetState extends State<MapWidget> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Container(
-          width: double.infinity,
-          height: double.infinity,
-          color: Colors.blue,
-          child: const Center(
-            child: Text("MapWidget", style: TextStyle(color: Colors.white)),
+        GoogleMap(
+          onMapCreated: (controller) {
+            mapController = controller;
+          },
+          initialCameraPosition: CameraPosition(
+            target: _initialPosition,
+            zoom: 16,
           ),
+          markers: markers,
+          myLocationEnabled: true,
+          myLocationButtonEnabled: true,
         ),
         Positioned(
           top: 32,
